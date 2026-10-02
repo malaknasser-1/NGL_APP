@@ -1,8 +1,14 @@
+import { error } from "node:console";
 import * as authService from "../service/auth.service.js";
+import { validateBody } from "../../../common/validation/validation.js";
+import { verifyAccountDTO, registerDTO, sendDTO, resetPasswordDTO } from "../dto/auth.dto.js";
+
+
 
 export async function register(req, res, next) {
     try {
-        const createdUser = await authService.register(req.body);
+        const data = validateBody(registerDTO, req.body);
+        const createdUser = await authService.register(data);
 
         return res.status(201).json({
             message: 'User Created Successfully',
@@ -16,12 +22,18 @@ export async function register(req, res, next) {
             stack: error.stack
         });
     }
-}
+          next(error)}
+    
+
+
 
 export async function verifyAccount(req,res,next) {
     try{
-const {email ,code }=req.body;
-const updatedUser=await authService.verifyAccount({email,code})
+
+        const data = validateBody(verifyAccountDto , req.body)
+        const {email ,code } =data;
+
+        const updatedUser=await authService.verifyAccount({email,code})
 res.json({
     message:'user verfied successfully',
     success:true,
@@ -34,6 +46,7 @@ res.json({
 }
 export async function login (req,res,next){
     try {
+        const data = validateBody(loginDTO , req.body)
         const { email, password } = req.body;
         const token = await authService.login(email, password);
         
@@ -48,5 +61,31 @@ export async function login (req,res,next){
         });
     }catch(error){
         next(error)
+    }
+}
+
+
+export async function sendOtp(req , res, next){
+try{
+    const data = validateBody(sendDTO , req.body)
+     
+    const {email}=data;
+    await authService.sendOtp(email);
+    res.json({message : 'new otp sent ,check user email',success:true})
+
+}
+catch(err) 
+{ 
+next(err)
+}}
+
+export async function resetPassword(req, res, next) {
+    try {
+        const data = validateBody(resetPasswordDTO , req.body)
+        const { email, code, newPassword } = data;
+        await authService.resetPassword(email, code, newPassword);
+        res.sendstatus(204);
+    } catch (error) {
+        next(error);
     }
 }

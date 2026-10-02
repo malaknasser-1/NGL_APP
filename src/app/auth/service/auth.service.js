@@ -1,85 +1,108 @@
 import * as authRepo from "../repo/auth.repo.js";
 import * as otpRepo from "../repo/otp.repo.js";
-import * as userRepo from "../../user/repo/user.repo.js"
+import * as userRepo from "../../user/repo/user.repo.js";
 import bcrypt from "bcrypt";
-import crypto from "node:crypto";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
+import { generateOTPCode } from "../../../common/utils/otp.js"; 
 import { sendEmail } from "../../../common/email/nodemailer.js";
-import { error } from "node:console";
-import { invalidPassword, userAleardyVerfied, userNotExist } from "../errors.js";
+import { toMs } from "../../../common/utils/time.js"; 
+import { logger } from "../../../common/logger/logger.js";
+import { hashPassword, comparePassword } from "../utils/hash.js";
 
+import { 
+  userNotVerified, 
+  userAlreadyExist, 
+  userAleardyVerfied, 
+  userNotExist, 
+  invalidPassword, 
+  invaliedCode, 
+  otpExpired 
+} from "../errors.js";
 
-  function toMs(time,unit){
-    switch(unit){
-        case'seconds':
-        return time *1000;
-        case'minutes':
-        return time *60*1000;
-        case'hours':
-        return time *60*60*1000;
-       default:
-        return time ;
-        
-    }
-}
 export async function register(userData) {
+    
     const userExist = await authRepo.checkUserExistByEmail(userData.email);
-    if (userExist) throw userAleardyExist
+    if (userExist) {
+        throw userAlreadyExist;
+    }
+userData.password = await hashPassword(userData.password);
+const createdUser = await authRepo.createUser(userData);
 
-    userData.password = await bcrypt.hash(userData.password, 10);
-
-    const createdUser = await authRepo.createUser(userData);
-
-    const otp = crypto.randomInt(100000, 999999).toString();
+    const code = generateOTPCode();
+    logger.info(code);
     await otpRepo.createOTP({
-        code: otp,
+        code: code,
         email: userData.email,
-        expiresAt: new Date(Date.now() + toMs(5,'minutes')) 
+        expiresAt: new Date(Date.now() + toMs(5, 'minutes')) 
     });
 
-    
     await sendEmail(
         userData.email,
         'Verification Code',
-        `<h1>Your verification code is ${otp}</h1>`
+        `<h1>Your verification code is ${code}</h1>`
     );
 
     return createdUser;
 }
 
 export async function verifyAccount({ email, code }) {
-    
     const user = await authRepo.checkUserExistByEmail(email);
 
-    
-    if (!user) throw userNotExist
-    if (user.isVerified === true) throw userAleardyVerfied
+    if (!user) throw userNotExist;
+    if (user.isVerified === true) throw userAleardyVerfied;
 
-   
     const otp = await otpRepo.getOtpByEmail(email);
-    if (!otp) throw otpExpired
+    if (!otp) throw otpExpired;
 
-    if (otp.code !== code) throw invaliedCode
+    if (otp.code !== code) throw invaliedCode;
 
-    
     const updatedUser = await userRepo.updateUserByEmail(email, { isVerified: true });
-    await otpRepo.deleteOTP(email);
+    await otpRepo.deleteOTPsByEmail(email);
 
     return updatedUser;
 }
 
-export async function login(email,password){
-    const user = await authRepo.checkUserExistByEmail(email)
-    if (!user) throw userNotExist
+export async function login(email, password) {
+    const user = await authRepo.checkUserExistByEmail(email);
+    if (!user) throw userNotExist;
 
     if (user.isVerified === false) throw userNotVerified;
-
-const match = await bcrypt.compare(password, user.password);
+   const match = await comparePassword(password, user['password']);
 if (!match) throw invalidPassword;
 
+    return generateToken({ id: user._id, name: user.name }); 
+}
 
-const token =jwt.sign(
-    {id:user._id  , email:user.email , name : user.name},
-    "process.env.JWT_SECRET",
-    {expiresIn:toMs(1,'hours')})
+export async function sendOtp(email) {
+    const user = await authRepo.checkUserExistByEmail(email); 
+    if (!user) throw userNotExist;
+    
+    await otpRepo.deleteOTPsByEmail(email);
+
+    const code = generateOTPCode();
+    await otpRepo.createOTP({
+        code: code,
+        email: email,
+        expiresAt: new Date(Date.now() + toMs(3, 'minutes')) 
+    });
+
+    await sendEmail(email, 'new otp', `<p> Your otp is ${code} </p>`);
+    return true;
+}
+
+
+export async function resetPassword(email, code, newPassword) {
+    
+    const otp = await otpRepo.getOtpByEmail(email); // {} | null
+    if (!otp) throw otpExpired;
+    if (otp.code !== code) throw invaliedCode;
+
+    
+    const hashedPassword = await hashPassword(newPassword);
+    await userRepo.updateUserByEmail(email, { password: hashedPassword });
+
+    
+    await otpRepo.deleteOTPsByEmail(email);
+
+    return true;
 }
