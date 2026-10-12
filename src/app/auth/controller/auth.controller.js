@@ -83,7 +83,10 @@ export async function resetPassword(req, res, next) {
         const data = validateBody(resetPasswordDTO , req.body)
         const { email, code, newPassword } = data;
         await authService.resetPassword(email, code, newPassword);
-        res.sendstatus(204);
+        res.json({
+            message :"password reset successfully"
+            ,success :true,
+        })
     } catch (error) {
         next(error);
     }

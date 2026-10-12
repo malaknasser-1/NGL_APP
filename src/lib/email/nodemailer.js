@@ -2,6 +2,9 @@
 import nodemailer from "nodemailer";
 import { env } from "../config/env.js";
 
+console.log(env.nodemailer.user);
+console.log(env.nodemailer.password);
+
 
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",

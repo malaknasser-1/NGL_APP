@@ -40,7 +40,7 @@ const createdUser = await authRepo.createUser(userData);
         expiresAt: new Date(Date.now() + toMs(5, 'minutes')) 
     });
 
-    await sendEmail(
+    await mailjetProvider.sendEmail(
         userData.email,
         'Verification Code',
         `<h1>Your verification code is ${code}</h1>`
@@ -90,7 +90,7 @@ export async function sendOtp(email) {
         expiresAt: new Date(Date.now() + toMs(3, 'minutes')) 
     });
 
-    await sendEmail(email, 'new otp', `<p> Your otp is ${code} </p>`);
+    await mailjetProvider.sendEmail(email, 'new otp', `<p> Your otp is ${code} </p>`);
     return true;
 }
 
