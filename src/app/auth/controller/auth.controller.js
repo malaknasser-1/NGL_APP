@@ -1,8 +1,7 @@
 import { error } from "node:console";
 import * as authService from "../service/auth.service.js";
-import { validateBody } from "../../../common/validation/validation.js";
+import { validateBody } from "../../../lib/validation/validation.js";
 import { verifyAccountDTO, registerDTO, sendDTO, resetPasswordDTO } from "../dto/auth.dto.js";
-
 
 
 export async function register(req, res, next) {
@@ -88,4 +87,18 @@ export async function resetPassword(req, res, next) {
     } catch (error) {
         next(error);
     }
+}
+
+export async function loginWithGoogle (req,res,next){
+    try{
+      const token = await  authService.loginWithGoogle(req.body.idToken)
+        res.cookie ('access_token',token,{
+            httpOnly:true , maxAge:(1,'hours'),
+        })
+        res.json({message:"user login successfully", succes:true})
+    }
+    catch(err){
+        next(err)
+    }
+
 }

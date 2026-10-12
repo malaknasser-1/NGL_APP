@@ -3,11 +3,11 @@ import * as otpRepo from "../repo/otp.repo.js";
 import * as userRepo from "../../user/repo/user.repo.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { generateOTPCode } from "../../../common/utils/otp.js"; 
-import { sendEmail } from "../../../common/email/nodemailer.js";
-import { toMs } from "../../../common/utils/time.js"; 
-import { logger } from "../../../common/logger/logger.js";
-import { hashPassword, comparePassword } from "../utils/hash.js";
+import { generateOTPCode } from "../../../lib/utils/otp.js"; 
+import { logger } from "../../../pkg/logger/logger.js";
+import { sendEmail } from "../../../lib/email/nodemailer.js";
+import { toMs } from "../../../pkg/utils/time.js";
+import { hashPassword ,comparePassword } from "../utils/hash.js";
 
 import { 
   userNotVerified, 
@@ -18,6 +18,10 @@ import {
   invaliedCode, 
   otpExpired 
 } from "../errors.js";
+
+import { OAuth2Client } from "google-auth-library";
+import { verifyGoogleToken } from "../../../lib/utils/google-auth.js";
+import { AppError } from "../../../lib/error/error.js";
 
 export async function register(userData) {
     
@@ -105,4 +109,26 @@ export async function resetPassword(email, code, newPassword) {
     await otpRepo.deleteOTPsByEmail(email);
 
     return true;
+}
+
+
+export async function loginWithGoogle(idToken) {
+const getPayload = verifyGoogleToken(idToken)
+const user = await authRepo.checkUserExistByEmail(payload.email)
+if(iser){
+    return generateToken({
+        id:user.id,
+        email:user.email
+    })
+}
+    authRepo.createUser({
+       name:payload.name,
+       email :payload.email,
+       provider :'google' ,
+       isVerified :true ,
+    })
+    return generateToken({
+        id: createUser.id,
+        email : createUser.email,
+    })
 }

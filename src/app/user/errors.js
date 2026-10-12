@@ -1,4 +1,4 @@
-import { AppError } from "../../../common/error/error.js";
+import { AppError } from '../../lib/error/error';
 
 export const userNotExist =new AppError ('user not exist',404);
 export const userAleardyVerfied = new AppError("user alearady Verfied",409)
