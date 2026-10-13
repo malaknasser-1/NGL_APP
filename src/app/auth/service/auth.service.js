@@ -3,11 +3,13 @@ import * as otpRepo from "../repo/otp.repo.js";
 import * as userRepo from "../../user/repo/user.repo.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { mailjetProvider } from "../../../lib/email/init.js";
 import { generateOTPCode } from "../../../lib/utils/otp.js"; 
 import { logger } from "../../../pkg/logger/logger.js";
 import { sendEmail } from "../../../lib/email/nodemailer.js";
 import { toMs } from "../../../pkg/utils/time.js";
 import { hashPassword ,comparePassword } from "../utils/hash.js";
+
 
 import { 
   userNotVerified, 
@@ -90,7 +92,7 @@ export async function sendOtp(email) {
         expiresAt: new Date(Date.now() + toMs(3, 'minutes')) 
     });
 
-    await mailjetProvider.sendEmail(email, 'new otp', `<p> Your otp is ${code} </p>`);
+    await mailjetProvider.sendMail(email, 'new otp', `<p> Your otp is ${code} </p>`);
     return true;
 }
 

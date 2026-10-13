@@ -1,5 +1,5 @@
 import { logger } from "../../pkg/logger/logger.js";
-import { correlationId } from "../correlation/correlationid.js";
+import { correlationId } from "../../pkg/correlation/correlationid.js";
 
 export function globalErrorHandler(err, req, res, _next) {
 
